@@ -1,0 +1,57 @@
+# Build results
+bin/
+obj/
+out/
+
+# Visual Studio user-specific files
+.vs/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Rider project files (if you use JetBrains IDE)
+.idea/
+
+# AWS credential/config (if accidentally included, usually not in project dir)
+*.aws/
+
+# Dotnet artifacts
+*.dll
+*.exe
+*.pdb
+*.app
+*.cache
+*.log
+
+# NuGet packages
+*.nupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Visual Studio Code workspace files
+.vscode/
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+
+# Others
+_ReSharper*/
+*.resharper
+*.sln.iml
+
+# Environment-specific files
+.env
+.env.*
+
+# AWS SDK auto-generated files (if any tools generate these)
+aws-sdk-*
+
+# Publish folders
+publish/
+AppPackages/
+TestResults/
