@@ -1,11 +1,13 @@
-﻿using Amazon.S3;
-using Amazon.S3.Model;
+﻿using Amazon;
+using Amazon.S3;
 using System.IO;
 
 namespace CameraUploaderApp.Services
 {
     public class S3_Basics
     {
+        private static RegionEndpoint tokyoRegion = RegionEndpoint.APNortheast1;
+
         // TODO:タスクではなく、WPFでのイベントごとに処理を行う
         public static async Task Main()
         {
@@ -13,30 +15,10 @@ namespace CameraUploaderApp.Services
             // default user installed on the system. To work with Amazon S3
             // features in a different AWS Region, pass the AWS Region as a
             // parameter to the client constructor.
-            IAmazonS3 client = new AmazonS3Client();
+            IAmazonS3 client = new AmazonS3Client(tokyoRegion);
             string bucketName = string.Empty;
             string filePath = string.Empty;
             string keyName = string.Empty;
-
-            var sepBar = new string('-', Console.WindowWidth);
-
-            Console.WriteLine(sepBar);
-            Console.WriteLine("Amazon Simple Storage Service (Amazon S3) basic");
-            Console.WriteLine("procedures. This application will:");
-            Console.WriteLine("\n\t1. Create a bucket");
-            Console.WriteLine("\n\t2. Upload an object to the new bucket");
-            Console.WriteLine("\n\t3. Copy the uploaded object to a folder in the bucket");
-            Console.WriteLine("\n\t4. List the items in the new bucket");
-            Console.WriteLine("\n\t5. Delete all the items in the bucket");
-            Console.WriteLine("\n\t6. Delete the bucket");
-            Console.WriteLine(sepBar);
-
-            // Create a bucket.
-            Console.WriteLine($"\n{sepBar}");
-            Console.WriteLine("\nCreate a new Amazon S3 bucket.\n");
-            Console.WriteLine(sepBar);
-
-            Console.Write("Please enter a name for the new bucket: ");
             
             // TODO:バケット名を画面から入力
             bucketName = Console.ReadLine();
@@ -50,10 +32,6 @@ namespace CameraUploaderApp.Services
             {
                 Console.WriteLine($"Could not create bucket: {bucketName}.\n");
             }
-
-            Console.WriteLine(sepBar);
-            Console.WriteLine("Upload a file to the new bucket.");
-            Console.WriteLine(sepBar);
 
             // Get the local path and filename for the file to upload.
             while (string.IsNullOrEmpty(filePath))
@@ -146,5 +124,11 @@ namespace CameraUploaderApp.Services
             // Delete the bucket.
             await S3Bucket.DeleteBucketAsync(client, bucketName);
         }
+
+        //public static GetListBucketContentsAsync()
+        //{
+        //    // List the objects in the bucket.
+        //    return S3Bucket.ListBucketContentsAsync(client, bucketName);
+        //}
     }
 }

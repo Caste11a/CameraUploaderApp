@@ -1,10 +1,43 @@
-﻿using Amazon.S3;
+﻿using Amazon;
+using Amazon.S3;
 using Amazon.S3.Model;
 
 namespace CameraUploaderApp.Services
 {
     public class S3Bucket
     {
+        private readonly IAmazonS3 _amazonS3;
+        private RegionEndpoint tokyoRegion = RegionEndpoint.APNortheast1;
+
+        // コンストラクタ
+        public S3Bucket() 
+        {
+            IAmazonS3 client = new AmazonS3Client(tokyoRegion);
+            _amazonS3 = client;
+        }
+
+        /// <summary>
+        /// すべてのバケット取得
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<string>> GetAllBucketsAsync()
+        {
+            var response = await _amazonS3.ListBucketsAsync();
+            return response.Buckets.Select(b => b.BucketName).ToList();
+        }
+
+        /// <summary>
+        /// バケット内のオブジェクト情報取得
+        /// </summary>
+        /// <param name="bucketName"></param>
+        /// <returns></returns>
+        public async Task<List<string>> GetFilesInBucketAsync(string bucketName)
+        {
+            var request = new ListObjectsV2Request { BucketName = bucketName };
+            var response = await _amazonS3.ListObjectsV2Async(request);
+            return response.S3Objects.Select(obj => obj.Key).ToList();
+        }
+
         /// <summary>
         /// Shows how to create a new Amazon S3 bucket.
         /// </summary>
@@ -178,13 +211,13 @@ namespace CameraUploaderApp.Services
                     response = await client.ListObjectsV2Async(request);
 
                     response.S3Objects
-                        .ForEach(obj => Console.WriteLine($"{obj.Key,-35}{obj.LastModified.ToShortDateString(),10}{obj.Size,10}"));
+                        .ForEach(obj => Console.WriteLine($"{obj.Key,-35}{obj.LastModified?.ToShortDateString(),10}{obj.Size,10}"));
 
                     // If the response is truncated, set the request ContinuationToken
                     // from the NextContinuationToken property of the response.
                     request.ContinuationToken = response.NextContinuationToken;
                 }
-                while (response.IsTruncated);
+                while (response.IsTruncated ?? false);
 
                 return true;
             }
@@ -226,7 +259,7 @@ namespace CameraUploaderApp.Services
                     // from the NextContinuationToken property of the response.
                     request.ContinuationToken = response.NextContinuationToken;
                 }
-                while (response.IsTruncated);
+                while (response.IsTruncated ?? false);
 
                 return true;
             }

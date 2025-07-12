@@ -7,7 +7,14 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <ListBox d:ItemsSource="{d:SampleData ItemCount=5}" Margin="83,98,119,89"/>
+        <StackPanel Margin="20">
+            <TextBlock Text="バケット選択" Margin="0,10,0,0"/>
+            <ComboBox ItemsSource="{Binding Buckets}" SelectedItem="{Binding SelectedBucket}"
+                      Width="300" HorizontalAlignment="Left" />
 
+            <!--ファイル一覧-->
+            <TextBlock Text="ファイル一覧" Margin="0,10,10,0"/>
+            <ListBox ItemsSource="{Binding Files}" Height="250"/>
+        </StackPanel>
     </Grid>
 </Window>
