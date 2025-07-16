@@ -14,7 +14,21 @@
 
             <!--ファイル一覧-->
             <TextBlock Text="ファイル一覧" Margin="0,10,10,0"/>
-            <ListBox ItemsSource="{Binding Files}" Height="250"/>
+
+            <ListBox ItemsSource="{Binding Files}" Height="250">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox IsChecked="{Binding IsSelected}"/>
+                            <TextBlock Text="{Binding Key}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="アップロード" Command="{Binding UploadCommand}" Margin="5" Width="100"/>
+                <Button Content="ダウンロード" Command="{Binding DownloadCommand}" Margin="5" Width="100"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Window>
