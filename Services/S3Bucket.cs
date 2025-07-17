@@ -1,6 +1,9 @@
 ﻿using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.S3.Transfer;
+using System.IO;
+using System.Windows.Navigation;
 
 namespace CameraUploaderApp.Services
 {
@@ -52,30 +55,35 @@ namespace CameraUploaderApp.Services
         /// <param name="objectName">The object to upload.</param>
         /// <param name="filePath">The path, including file name, of the object
         /// on the local computer to upload.</param>
+        /// <param name="progress">progressver</param>
         /// <returns>A boolean value indicating the success or failure of the
         /// upload procedure.</returns>
         public async Task<bool> UploadFileAsync(
-            //IAmazonS3 client,
             string bucketName,
             string objectName,
-            string filePath)
+            string filePath,
+            Action<int> progress)
         {
             try
             {
-                var request = new PutObjectRequest
+                // プログレスバー仕様の処理
+                var request = new TransferUtilityUploadRequest
                 {
                     BucketName = bucketName,
                     Key = objectName,
                     FilePath = filePath,
                 };
 
-                //await client.PutObjectAsync(request);
+                request.UploadProgressEvent += (sender, e) =>
+                {
+                    int percent = (int)(e.TransferredBytes / e.TotalBytes * 100);
+                    progress(percent);
+                };
 
-                var client = await GetClient();
-                await _amazonS3.PutObjectAsync(request);
-
-                //Console.WriteLine($"Successfully uploaded {objectName} to {bucketName}.");
+                var transferUtility = new TransferUtility(_amazonS3);
+                await transferUtility.UploadAsync(request);
                 return true;
+
             }
             catch (AmazonS3Exception ex)
             {
@@ -83,6 +91,74 @@ namespace CameraUploaderApp.Services
                 return false;
             }
         }
+
+
+        /// <summary>
+        /// Shows how to download an object from an Amazon S3 bucket to the
+        /// local computer.
+        /// </summary>
+        /// <param name="client">An initialized Amazon S3 client object.</param>
+        /// <param name="bucketName">The name of the bucket where the object is
+        /// currently stored.</param>
+        /// <param name="objectName">The name of the object to download.</param>
+        /// <param name="filePath">The path, including filename, where the
+        /// downloaded object will be stored.</param>
+        /// <returns>A boolean value indicating the success or failure of the
+        /// download process.</returns>
+        public async Task<bool> DownloadObjectFromBucketAsync(
+            //IAmazonS3 client,
+            string bucketName,
+            string objectName,
+            string filePath,
+            Action<int> progressCallback)
+        {
+            try
+            {
+                // プログレスバー仕様の処理
+                // Create a GetObject request
+                var request = new GetObjectRequest
+                {
+                    BucketName = bucketName,
+                    Key = objectName,
+                };
+
+                IAmazonS3 client = await GetClient();
+                // Issue request and remember to dispose of the response
+                using GetObjectResponse response = await client.GetObjectAsync(request);
+                long totalBytes = response.ContentLength;
+
+                // ダウンロードストリームの読み取りを監視することでプログレスバーを表示する
+                const int bufferSize = 81920; // 80KB
+                var buffer = new byte[bufferSize];
+                long totalRead = 0;
+
+                // TODO:AWSのオブジェクトキーが/ありなので含まれている場合例外になる
+                string fullPath = string.Format(@"{0}\\{1}", filePath, objectName);
+
+                using var stream = response.ResponseStream;
+                using var fs = new FileStream(fullPath, FileMode.Create, FileAccess.ReadWrite);
+
+                int bytesRead;
+                while((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                {
+                    await fs.WriteAsync(buffer, 0, bytesRead);
+                    totalRead += bytesRead;
+
+                    int progress = (int)(totalRead / totalBytes * 100);
+                    progressCallback(progress);    
+                }
+
+
+                return response.HttpStatusCode == System.Net.HttpStatusCode.OK;
+
+            }
+            catch (AmazonS3Exception ex)
+            {
+                //Console.WriteLine($"Error saving {objectName}: {ex.Message}");
+                return false;
+            }
+        }
+
 
 
 
