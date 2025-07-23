@@ -17,4 +17,8 @@
     <PackageReference Include="AWSSDK.S3" Version="4.0.4.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CommonPlatform\CommonPlatform.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -28,6 +28,7 @@
             <StackPanel Orientation="Horizontal">
                 <Button Content="アップロード" Command="{Binding UploadCommand}" Margin="5" Width="100"/>
                 <Button Content="ダウンロード" Command="{Binding DownloadCommand}" Margin="5" Width="100"/>
+                <Button Content="削除" Command="{Binding DeleteCommand}" Margin="5" Width="50"/>
             </StackPanel>
 
             <ProgressBar Minimum="0" Maximum="100"

@@ -1,11 +1,11 @@
 ﻿using CameraUploaderApp.Model;
 using CameraUploaderApp.Services;
+using CommonPlatform.Native;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO.Enumeration;
 using System.Runtime.CompilerServices;
-using System.Windows;
+using System.Security.AccessControl;
 using System.Windows.Input;
 
 namespace CameraUploaderApp.ViewModels
@@ -17,9 +17,11 @@ namespace CameraUploaderApp.ViewModels
 
         private RelayCommand _uploadCommand;
         private RelayCommand _downloadCommand;
+        private RelayCommand _deleteCommand;
 
         public ICommand UploadCommand => _uploadCommand;
         public ICommand DownloadCommand => _downloadCommand;
+        public ICommand DeleteCommand => _deleteCommand;
 
         private string _selectedBucket;
         public string SelectedBucket
@@ -68,6 +70,26 @@ namespace CameraUploaderApp.ViewModels
             // イベント
             _uploadCommand = new RelayCommand(Upload, CanUpload);
             _downloadCommand = new RelayCommand(Download);
+            _deleteCommand = new RelayCommand(DeleteObjects);
+
+            int result_init = FujiCameraNative.CallXsdkInit();
+            if (result_init == (int)FujiCameraNative.RESULT.XSDK_COMPLETE)
+            {
+                
+                //// 成功
+                //if (FujiCameraNative.CallXsdkDetect(out int plCount) == (int)FujiCameraNative.RESULT.XSDK_COMPLETE
+                //    && plCount > 0)
+                //{
+                //    // 検出デバイスが1機以上ある場合
+                //}
+
+            }
+            else
+            {
+                // 失敗
+            }
+
+
             Initialize();
         }
 
@@ -147,8 +169,13 @@ namespace CameraUploaderApp.ViewModels
         {
             //string bucketName = "";
             string objectName = string.Empty;
-            // TODO:ディレクリを選択したい
-            string filePath = "D:\\repo\\S3\\download_Image";
+
+            //string folderPath = "D:\\repo\\S3\\download_Image";
+            string folderPath = SelectDownloadFolder();
+            if (folderPath == string.Empty)
+            {
+                return;
+            }
 
             objectName = Files.Where(e => e.IsSelected).First().Key;
 
@@ -156,14 +183,51 @@ namespace CameraUploaderApp.ViewModels
             Progress = 0;
 
             // ファイルのダウンロード
-            bool test = await _s3Bucket.DownloadObjectFromBucketAsync(
+            bool result = await _s3Bucket.DownloadObjectFromBucketAsync(
                 SelectedBucket,
                 objectName,
-                filePath,
+                folderPath,
                 p => Progress = p);
 
             IsBusy = false;
             Progress = 0;
+        }
+
+        /// <summary>
+        /// ダウンロード先のフォルダ選択処理
+        /// </summary>
+        /// <returns>選択したフォルダパスを返却</returns>
+        private string SelectDownloadFolder()
+        {
+            var dialog = new OpenFolderDialog()
+            {
+                Title = "Select folder to open",
+                InitialDirectory = Environment.GetFolderPath(
+                    Environment.SpecialFolder.ProgramFiles)
+            };
+
+            string folderPath = string.Empty;
+            if(dialog.ShowDialog() == true)
+            {
+                folderPath = dialog.FolderName;
+            }
+
+            return folderPath;
+        }
+
+        /// <summary>
+        /// 選択したオブジェクトの削除処理
+        /// </summary>
+        private async void DeleteObjects()
+        {
+            foreach (var objectInfo in Files.Where(e => e.IsSelected))
+            {
+                // 選択したオブジェクトの削除
+                await _s3Bucket.CreateAndDeleteObjectVersionAsync(SelectedBucket, objectInfo.Key);
+            }
+
+            // ファイル一覧の再読み込み
+            LoadFilesAsync();
         }
 
 

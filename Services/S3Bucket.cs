@@ -160,7 +160,41 @@ namespace CameraUploaderApp.Services
         }
 
 
+        /// <summary>
+        /// This method creates and then deletes a versioned object.
+        /// </summary>
+        /// <param name="client">The initialized Amazon S3 client object used to
+        /// create and delete the object.</param>
+        /// <param name="bucketName">The name of the Amazon S3 bucket where the
+        /// object will be created and deleted.</param>
+        /// <param name="keyName">The key name of the object to create.</param>
+        public async Task CreateAndDeleteObjectVersionAsync(
+            //IAmazonS3 client,
+            string bucketName,
+            string keyName)
+        {
+            try
+            {
+                //// Add a sample object.
+                //string versionID = await PutAnObject(client, bucketName, keyName);
 
+                IAmazonS3 client = await GetClient();
+
+                DeleteObjectRequest request = new DeleteObjectRequest()
+                {
+                    BucketName = bucketName,
+                    Key = keyName,
+                    //VersionId = versionID,　// バージョニング非対応の場合
+                };
+
+
+                await client.DeleteObjectAsync(request);
+            }
+            catch (AmazonS3Exception ex)
+            {
+                //Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
 
 
         ///// <summary>
