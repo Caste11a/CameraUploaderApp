@@ -3,7 +3,6 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
 using System.IO;
-using System.Windows.Navigation;
 
 namespace CameraUploaderApp.Services
 {
@@ -26,10 +25,10 @@ namespace CameraUploaderApp.Services
         /// <summary>
         /// すべてのバケット取得
         /// </summary>
-        /// <returns></returns>
+        /// <returns>バケットリスト</returns>
         public async Task<List<string>> GetAllBucketsAsync()
         {
-            var response = await _amazonS3.ListBucketsAsync();
+            ListBucketsResponse response = await _amazonS3.ListBucketsAsync();
             return response.Buckets.Select(b => b.BucketName).ToList();
         }
 
@@ -38,11 +37,11 @@ namespace CameraUploaderApp.Services
         /// </summary>
         /// <param name="bucketName"></param>
         /// <returns></returns>
-        public async Task<List<string>> GetFilesInBucketAsync(string bucketName)
+        public async Task<List<S3Object>> GetFilesInBucketAsync(string bucketName)
         {
-            var request = new ListObjectsV2Request { BucketName = bucketName };
-            var response = await _amazonS3.ListObjectsV2Async(request);
-            return response.S3Objects.Select(obj => obj.Key).ToList();
+            ListObjectsV2Request request = new ListObjectsV2Request { BucketName = bucketName };
+            ListObjectsV2Response response = await _amazonS3.ListObjectsV2Async(request);
+            return response.S3Objects;
         }
 
         /// <summary>

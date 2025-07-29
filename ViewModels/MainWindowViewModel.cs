@@ -1,12 +1,13 @@
-﻿using CameraUploaderApp.Model;
-using CameraUploaderApp.Services;
+﻿using Amazon.S3.Model;
+using CameraUploaderApp.Model;
 using CommonPlatform.Native;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Security.AccessControl;
+using System.Windows;
 using System.Windows.Input;
+using S3Bucket = CameraUploaderApp.Services.S3Bucket;
 
 namespace CameraUploaderApp.ViewModels
 {
@@ -18,10 +19,12 @@ namespace CameraUploaderApp.ViewModels
         private RelayCommand _uploadCommand;
         private RelayCommand _downloadCommand;
         private RelayCommand _deleteCommand;
+        private RelayCommand _nextPageCommand;
 
         public ICommand UploadCommand => _uploadCommand;
         public ICommand DownloadCommand => _downloadCommand;
         public ICommand DeleteCommand => _deleteCommand;
+        public ICommand NextPageCommand => _nextPageCommand;
 
         private string _selectedBucket;
         public string SelectedBucket
@@ -35,7 +38,6 @@ namespace CameraUploaderApp.ViewModels
                     OnPropertyChanged();
                     LoadFilesAsync();
                     _uploadCommand?.RaiseCanExecuteChanged();
-                    _downloadCommand?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -64,13 +66,26 @@ namespace CameraUploaderApp.ViewModels
         }
 
         private readonly S3Bucket _s3Bucket;
+
+        /// <summary>
+        /// コンストラクタ
+        /// </summary>
         public MainWindowViewModel() 
         {
             _s3Bucket = new S3Bucket();
             // イベント
             _uploadCommand = new RelayCommand(Upload, CanUpload);
-            _downloadCommand = new RelayCommand(Download);
-            _deleteCommand = new RelayCommand(DeleteObjects);
+            _downloadCommand = new RelayCommand(Download, IsSelectedFile);
+            _deleteCommand = new RelayCommand(DeleteObjects, IsSelectedFile);
+
+            // S3Objectitemの選択状態変更時に再評価
+            S3ObjectItem.IsSelectedChanged += () =>
+            {
+                Application.Current.Dispatcher.Invoke(() => {
+                    _downloadCommand?.RaiseCanExecuteChanged();
+                    _deleteCommand?.RaiseCanExecuteChanged();
+                });
+            };
 
             int result_init = FujiCameraNative.CallXsdkInit();
             if (result_init == (int)FujiCameraNative.RESULT.XSDK_COMPLETE)
@@ -93,6 +108,9 @@ namespace CameraUploaderApp.ViewModels
             Initialize();
         }
 
+        /// <summary>
+        /// 初期化処理
+        /// </summary>
         private async void Initialize()
         {
             //S3_Basics.Main();
@@ -108,15 +126,21 @@ namespace CameraUploaderApp.ViewModels
         private async void LoadFilesAsync()
         {
             if (string.IsNullOrEmpty(SelectedBucket)) return;
-            var keys = await _s3Bucket.GetFilesInBucketAsync(SelectedBucket);
+            List<S3Object> S3ObjectList = await _s3Bucket.GetFilesInBucketAsync(SelectedBucket);
 
             Files.Clear();
-            foreach (var key in keys)
+            foreach (var obj in S3ObjectList)
             {
-                Files.Add(new S3ObjectItem { Key = key, IsSelected = false});
+                Files.Add(new S3ObjectItem{
+                    Key = obj.Key,
+                    IsSelected = false,
+                    LastModified = obj.LastModified?.ToString("yyyy/MM/dd HH:mm"),
+                    ObjectSize = obj.Size / 1024, // KBに変換
+                });
             }
         }
 
+        #region アップロード処理関連
         /// <summary>
         /// ファイルアップロード処理
         /// </summary>
@@ -162,6 +186,9 @@ namespace CameraUploaderApp.ViewModels
             return !string.IsNullOrEmpty(SelectedBucket);
         }
 
+#endregion
+
+        #region ダウンロード処理関連
         /// <summary>
         /// ファイルダウンロード処理
         /// </summary>
@@ -193,6 +220,12 @@ namespace CameraUploaderApp.ViewModels
             Progress = 0;
         }
 
+        private bool IsSelectedFile()
+        {
+            // バケットが選択されている場合のみ実行可能
+            return Files.Any(e => e.IsSelected);
+        }
+
         /// <summary>
         /// ダウンロード先のフォルダ選択処理
         /// </summary>
@@ -215,6 +248,9 @@ namespace CameraUploaderApp.ViewModels
             return folderPath;
         }
 
+        #endregion
+
+        #region 削除処理関連
         /// <summary>
         /// 選択したオブジェクトの削除処理
         /// </summary>
@@ -229,7 +265,7 @@ namespace CameraUploaderApp.ViewModels
             // ファイル一覧の再読み込み
             LoadFilesAsync();
         }
-
+        #endregion
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string name = null)
